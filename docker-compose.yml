@@ -1,0 +1,109 @@
+version: "3.9"
+
+services:
+  # ── PostgreSQL 16 with pgvector ────────────────────────────────────────────
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: hirematch-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Python AI Microservice ─────────────────────────────────────────────────
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: hirematch-ai-service
+    restart: unless-stopped
+    environment:
+      HF_TOKEN: ${HF_TOKEN:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ai_model_cache:/root/.cache/huggingface
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # ── Spring Boot Backend ────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: hirematch-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ai-service:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRY_MS: ${JWT_EXPIRY_MS:-900000}
+      JWT_REFRESH_EXPIRY_MS: ${JWT_REFRESH_EXPIRY_MS:-604800000}
+      AI_SERVICE_URL: ${AI_SERVICE_URL:-http://ai-service:8000}
+      STORAGE_TYPE: ${STORAGE_TYPE:-local}
+      STORAGE_PATH: ${STORAGE_PATH:-/app/uploads}
+      MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-noreply@hirematch.ai}
+      ADZUNA_APP_ID: ${ADZUNA_APP_ID:-}
+      ADZUNA_APP_KEY: ${ADZUNA_APP_KEY:-}
+      JSEARCH_API_KEY: ${JSEARCH_API_KEY:-}
+      REMOTIVE_ENABLED: ${REMOTIVE_ENABLED:-true}
+      MATCH_WEIGHT_SEMANTIC: ${MATCH_WEIGHT_SEMANTIC:-0.55}
+      MATCH_WEIGHT_SKILL: ${MATCH_WEIGHT_SKILL:-0.25}
+      MATCH_WEIGHT_EXPERIENCE: ${MATCH_WEIGHT_EXPERIENCE:-0.10}
+      MATCH_WEIGHT_LOCATION: ${MATCH_WEIGHT_LOCATION:-0.10}
+    ports:
+      - "8080:8080"
+    volumes:
+      - uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/v1/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  # ── React Frontend (dev) ───────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080/api/v1}
+        VITE_APP_NAME: ${VITE_APP_NAME:-HireMatch AI}
+    container_name: hirematch-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+
+volumes:
+  postgres_data:
+  uploads:
+  ai_model_cache:
