@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # HireMatch AI
 
 HireMatch AI is a modern, full-stack application designed to revolutionize the job search process. By leveraging AI (LLMs) and Vector Databases (`pgvector`), HireMatch parses your resume, intelligently matches you with the best roles, identifies skill gaps, tailors your resume for specific applications, and tracks your progress via an interactive Kanban board.
@@ -95,3 +96,6 @@ Contributions, issues, and feature requests are welcome!
 
 ## 📝 License
 This project is open-sourced software licensed under the MIT license.
+=======
+# AI-Project
+>>>>>>> 2c48b2ca06d68533da674bcb4ba6b94e5370ea28
