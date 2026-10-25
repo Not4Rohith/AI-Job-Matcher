@@ -41,14 +41,22 @@ public class SecurityConfig {
 
         http
             .csrf(AbstractHttpConfigurer::disable)
+
+            // Handle CORS before authentication.
             .cors(cors ->
                 cors.configurationSource(corsConfigurationSource())
             )
+
             .sessionManagement(sm ->
                 sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
+
             .authorizeHttpRequests(auth -> auth
-                // Public authentication endpoints
+
+                // Allow browser preflight requests.
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                // Public authentication endpoints.
                 .requestMatchers(
                     HttpMethod.POST,
                     "/api/v1/auth/register",
@@ -57,29 +65,30 @@ public class SecurityConfig {
                     "/api/v1/auth/refresh"
                 ).permitAll()
 
-                // Public job browsing endpoints
+                // Public job browsing endpoints.
                 .requestMatchers(
                     HttpMethod.GET,
                     "/api/v1/jobs/**",
                     "/api/v1/matches/recommendations"
                 ).permitAll()
 
-                // Public Actuator health endpoints
+                // Public Actuator health endpoints.
                 .requestMatchers(
                     "/api/v1/actuator/health",
                     "/api/v1/actuator/health/**"
                 ).permitAll()
 
-                // Public Swagger documentation
+                // Public Swagger documentation.
                 .requestMatchers(
                     "/api/v1/swagger-ui/**",
                     "/api/v1/api-docs/**",
                     "/api/v1/swagger-ui.html"
                 ).permitAll()
 
-                // All remaining endpoints require authentication
+                // All remaining endpoints require authentication.
                 .anyRequest().authenticated()
             )
+
             .addFilterBefore(
                 jwtAuthenticationFilter,
                 UsernamePasswordAuthenticationFilter.class
@@ -92,12 +101,27 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        config.setAllowedOrigins(
-            appProperties.getCors().getAllowedOrigins()
+        // Start with origins configured in application.yml.
+        List<String> allowedOrigins =
+            appProperties.getCors().getAllowedOrigins();
+
+        config.setAllowedOrigins(allowedOrigins);
+
+        // Explicitly allow the deployed frontend.
+        // This also works if the YAML list was not updated.
+        config.addAllowedOrigin(
+            "https://ai-job-matcher-frontend-puce.vercel.app"
         );
-        config.setAllowedMethods(
-            List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
-        );
+
+        config.setAllowedMethods(List.of(
+            "GET",
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE",
+            "OPTIONS"
+        ));
+
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
         config.setMaxAge(3600L);
