@@ -21,6 +21,7 @@ import java.math.BigDecimal;
 public class JobController {
 
     private final JobRepository jobRepository;
+    private final com.hirematch.scheduler.JobIngestionService jobIngestionService;
     private final ObjectMapper objectMapper;
     private final RestTemplate restTemplate = new RestTemplate();
 
@@ -46,6 +47,12 @@ public class JobController {
         return jobRepository.findById(id)
                 .map(job -> ResponseEntity.ok(mapToJobDto(job)))
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/sync")
+    public ResponseEntity<Map<String, Object>> syncJobs() {
+        int ingested = jobIngestionService.ingestJobsFromRemotive();
+        return ResponseEntity.ok(Map.of("status", "success", "ingested", ingested));
     }
 
     @PostMapping("/seed")

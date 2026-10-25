@@ -13,6 +13,7 @@ public interface JobRepository extends JpaRepository<Job, Long> {
     
     Optional<Job> findByHash(String hash);
 
+    @org.springframework.transaction.annotation.Transactional
     @Modifying
     @Query(value = "UPDATE jobs SET embedding = CAST(:vectorString AS vector) WHERE id = :id", nativeQuery = true)
     void updateEmbedding(Long id, String vectorString);

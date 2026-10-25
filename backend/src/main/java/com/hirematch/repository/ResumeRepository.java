@@ -18,10 +18,12 @@ public interface ResumeRepository extends JpaRepository<Resume, Long> {
     
     Optional<Resume> findFirstByUserIdAndIsPrimaryTrue(Long userId);
     
+    @org.springframework.transaction.annotation.Transactional
     @Modifying
     @Query("UPDATE Resume r SET r.isPrimary = false WHERE r.user.id = :userId")
     void clearPrimaryFlagsForUser(Long userId);
 
+    @org.springframework.transaction.annotation.Transactional
     @Modifying
     @Query(value = "UPDATE resumes SET embedding = CAST(:vectorString AS vector) WHERE id = :id", nativeQuery = true)
     void updateEmbedding(Long id, String vectorString);

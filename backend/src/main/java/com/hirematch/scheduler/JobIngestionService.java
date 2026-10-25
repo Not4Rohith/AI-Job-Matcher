@@ -34,7 +34,7 @@ public class JobIngestionService {
 
     // Run every hour. For testing, you could change this to fixedDelay = 60000 (every minute)
     @Scheduled(fixedDelay = 3600000, initialDelay = 10000)
-    public void ingestJobsFromRemotive() {
+    public int ingestJobsFromRemotive() {
         log.info("Starting Remotive job ingestion...");
         try {
             String url = "https://remotive.com/api/remote-jobs?category=software-dev&limit=20";
@@ -52,11 +52,13 @@ public class JobIngestionService {
                         }
                     }
                     log.info("Successfully ingested {} new jobs from Remotive.", ingested);
+                    return ingested;
                 }
             }
         } catch (Exception e) {
             log.error("Failed to ingest jobs from Remotive", e);
         }
+        return 0;
     }
 
     private boolean ingestSingleJob(JsonNode jobNode) {
@@ -80,8 +82,18 @@ public class JobIngestionService {
             }
 
             OffsetDateTime postedAt = OffsetDateTime.now();
-            if (jobNode.has("publication_date")) {
-                postedAt = OffsetDateTime.parse(jobNode.get("publication_date").asText(), DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+            if (jobNode.has("publication_date") && !jobNode.get("publication_date").isNull()) {
+                String rawDate = jobNode.get("publication_date").asText();
+                try {
+                    postedAt = OffsetDateTime.parse(rawDate, DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+                } catch (Exception ex) {
+                    try {
+                        postedAt = java.time.LocalDateTime.parse(rawDate, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                                .atOffset(java.time.ZoneOffset.UTC);
+                    } catch (Exception ignored) {
+                        postedAt = OffsetDateTime.now();
+                    }
+                }
             }
 
             Job job = Job.builder()
