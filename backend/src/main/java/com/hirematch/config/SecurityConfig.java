@@ -19,6 +19,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Configuration
@@ -42,7 +43,6 @@ public class SecurityConfig {
         http
             .csrf(AbstractHttpConfigurer::disable)
 
-            // Handle CORS before authentication.
             .cors(cors ->
                 cors.configurationSource(corsConfigurationSource())
             )
@@ -53,10 +53,8 @@ public class SecurityConfig {
 
             .authorizeHttpRequests(auth -> auth
 
-                // Allow browser preflight requests.
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                // Public authentication endpoints.
                 .requestMatchers(
                     HttpMethod.POST,
                     "/api/v1/auth/register",
@@ -65,27 +63,23 @@ public class SecurityConfig {
                     "/api/v1/auth/refresh"
                 ).permitAll()
 
-                // Public job browsing endpoints.
                 .requestMatchers(
                     HttpMethod.GET,
                     "/api/v1/jobs/**",
                     "/api/v1/matches/recommendations"
                 ).permitAll()
 
-                // Public Actuator health endpoints.
                 .requestMatchers(
                     "/api/v1/actuator/health",
                     "/api/v1/actuator/health/**"
                 ).permitAll()
 
-                // Public Swagger documentation.
                 .requestMatchers(
                     "/api/v1/swagger-ui/**",
                     "/api/v1/api-docs/**",
                     "/api/v1/swagger-ui.html"
                 ).permitAll()
 
-                // All remaining endpoints require authentication.
                 .anyRequest().authenticated()
             )
 
@@ -101,17 +95,20 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        // Start with origins configured in application.yml.
-        List<String> allowedOrigins =
-            appProperties.getCors().getAllowedOrigins();
+        List<String> allowedOrigins = new ArrayList<>(
+            appProperties.getCors().getAllowedOrigins()
+        );
 
+        // Exact production frontend origin.
         config.setAllowedOrigins(allowedOrigins);
-
-        // Explicitly allow the deployed frontend.
-        // This also works if the YAML list was not updated.
         config.addAllowedOrigin(
             "https://ai-job-matcher-frontend-puce.vercel.app"
         );
+
+        // Allow matching Vercel preview deployment URLs.
+        config.setAllowedOriginPatterns(List.of(
+            "https://ai-job-matcher-frontend-*-rohith-s-s-projects.vercel.app"
+        ));
 
         config.setAllowedMethods(List.of(
             "GET",
