@@ -1,3 +1,4 @@
+
 package com.hirematch.config;
 
 import com.hirematch.security.JwtAuthenticationFilter;
@@ -35,21 +36,54 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http)
+            throws Exception {
+
         http
             .csrf(AbstractHttpConfigurer::disable)
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .cors(cors ->
+                cors.configurationSource(corsConfigurationSource())
+            )
+            .sessionManagement(sm ->
+                sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            )
             .authorizeHttpRequests(auth -> auth
-                // Public endpoints
-                .requestMatchers(HttpMethod.POST, "/api/v1/auth/register", "/api/v1/auth/login", "/api/v1/auth/google", "/api/v1/auth/refresh").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/v1/jobs/**", "/api/v1/matches/recommendations").permitAll()
-                .requestMatchers("/api/v1/actuator/health").permitAll()
-                .requestMatchers("/api/v1/swagger-ui/**", "/api/v1/api-docs/**", "/api/v1/swagger-ui.html").permitAll()
-                // All other endpoints require authentication
+                // Public authentication endpoints
+                .requestMatchers(
+                    HttpMethod.POST,
+                    "/api/v1/auth/register",
+                    "/api/v1/auth/login",
+                    "/api/v1/auth/google",
+                    "/api/v1/auth/refresh"
+                ).permitAll()
+
+                // Public job browsing endpoints
+                .requestMatchers(
+                    HttpMethod.GET,
+                    "/api/v1/jobs/**",
+                    "/api/v1/matches/recommendations"
+                ).permitAll()
+
+                // Public Actuator health endpoints
+                .requestMatchers(
+                    "/api/v1/actuator/health",
+                    "/api/v1/actuator/health/**"
+                ).permitAll()
+
+                // Public Swagger documentation
+                .requestMatchers(
+                    "/api/v1/swagger-ui/**",
+                    "/api/v1/api-docs/**",
+                    "/api/v1/swagger-ui.html"
+                ).permitAll()
+
+                // All remaining endpoints require authentication
                 .anyRequest().authenticated()
             )
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(
+                jwtAuthenticationFilter,
+                UsernamePasswordAuthenticationFilter.class
+            );
 
         return http.build();
     }
@@ -57,14 +91,22 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(appProperties.getCors().getAllowedOrigins());
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+
+        config.setAllowedOrigins(
+            appProperties.getCors().getAllowedOrigins()
+        );
+        config.setAllowedMethods(
+            List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
+        );
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
         config.setMaxAge(3600L);
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        UrlBasedCorsConfigurationSource source =
+            new UrlBasedCorsConfigurationSource();
+
         source.registerCorsConfiguration("/api/v1/**", config);
+
         return source;
     }
 }
