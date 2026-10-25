@@ -208,7 +208,7 @@ export default function Onboarding() {
     const run = async () => {
       await typedBot(`Hey ${firstName}! ?? Welcome to HireMatch AI.\n\nI'm your personal career assistant. Let's set up your profile together through a quick conversation. Ready? ??`, { delay: 600 })
       await new Promise(r => setTimeout(r, 300))
-      await typedBot("First — are you currently a student, or have you already graduated?", {
+      await typedBot("First â€” are you currently a student, or have you already graduated?", {
         options: [
           { label: "?? Student / In College", value: "student", icon: GraduationCap },
           { label: "?? Graduate / Professional", value: "graduate", icon: Briefcase }
@@ -328,7 +328,7 @@ export default function Onboarding() {
       setPhase("resume_offer")
       await typedBot(
         rt === "student"
-          ? `Great, ${firstName}! ?? As a student I can help you build an internship-ready profile.\n\nDo you have a resume to upload? I'll extract everything automatically — or we can build it together step by step.`
+          ? `Great, ${firstName}! ?? As a student I can help you build an internship-ready profile.\n\nDo you have a resume to upload? I'll extract everything automatically â€” or we can build it together step by step.`
           : `Awesome! ?? Let's get you matched with the best opportunities.\n\nDo you have an existing resume? I'll read it and fill your profile, or we can do it together from scratch.`,
         { options: [{ label: "?? Upload my resume", value: "upload" }, { label: "?? Build profile manually", value: "manual" }] }
       )
